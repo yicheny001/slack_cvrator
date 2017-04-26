@@ -1,30 +1,25 @@
-
 var axios = require('axios')
 var _ = require('underscore')
 var os = require('os')
 var Botkit = require('./lib/Botkit.js')
 var constants = require('./constants.js')
 
-const { botToken, mySlackToken, channelId, channelName, postChannel } = constants
+const { botToken, mySlackToken, botId } = constants.environment
+const { channelId, channelName, postChannel, api } = constants.slack
+const { tags } = constants.application
 
-if (!process.env.token) {
-    console.log('Error: Specify token in environment');
+if (!botToken) {
+    console.log('Error: Specify token in constants.js');
     process.exit(1);
 }
 
 var controller = Botkit.slackbot({
     debug: true,
-});
+})
 
 var bot = controller.spawn({
-    token: process.env.token
+    token: constants.environment.botToken
 }).startRTM();
-
-const tags = [
-  'code', 'api', 'docker', 'react', 'javascript', 'ruby',
-  'design', 'product', 'ui', 'ux', 'swift', 'mobile',
-  'frontend', 'backend', 'css', 'animation' ,'architecture', 'performance', 'security',
-  'random' ,'all', 'testing', 'rails']
 
 const sortedBoldedTags = tags.sort().map((t)=>{return `*- ${t}*\n`}).join("")
 
@@ -43,7 +38,7 @@ controller.hears(['collect (.*)'],'direct_message,direct_mention,mention', funct
   let formattedTagged = taggedAs.map((tag)=>{return `#${tag}`}).join(" ")
 
   if(url){
-    axios.get(`https://slack.com/api/users.profile.get`, {
+    axios.get(`${api}/users.profile.get`, {
       params: {
         token: mySlackToken,
         user: message.user
@@ -52,9 +47,7 @@ controller.hears(['collect (.*)'],'direct_message,direct_mention,mention', funct
     .then(function (response) {
       userName = response.data.profile.first_name
 
-      console.log(`WHAT DOES THIS MESSAGE LOOK LIKE ${JSON.stringify(message)}`)
-
-      axios.get(`https://slack.com/api/chat.postMessage`, {
+      axios.get(`${api}/chat.postMessage`, {
         params: {
           token: botToken,
           channel: channelId,
@@ -82,7 +75,7 @@ controller.hears(['collect (.*)'],'direct_message,direct_mention,mention', funct
 
 controller.hears(tags, 'direct_message,direct_mention,mention', function(bot, message) {
   let keyWord = message.match[0]
-  axios.get(`https://slack.com/api/channels.history`, {
+  axios.get(`${api}/channels.history`, {
     params: {
       token: mySlackToken,
       channel: channelId
@@ -105,7 +98,7 @@ controller.hears(tags, 'direct_message,direct_mention,mention', function(bot, me
         if(m.text.includes(":bookmark:")
         && !m.text.includes(":information_source:")
         && m.text.includes(keyWord)
-        && m.bot_id==='B49CK01GR'){
+        && m.bot_id === botId){
           collection.push(`${m.text} \n`)
         }
       })
@@ -271,12 +264,10 @@ function formatUptime(uptime) {
     return uptime;
 }
 
-controller.hears(['hello', 'hi'], 'direct_message,direct_mention,mention', function(bot, message) {
-  controller.storage.users.get(message.user, function(err, user) {
-      if (user && user.name) {
-          bot.reply(message, 'Hello ' + user.name + '!!');
-      } else {
-          bot.reply(message, 'Hello. To save a link, format your message like so:\n"collect *link* tag *product* *ui*"\n Type *tags* to see available tags.');
-      }
-  });
+controller.hears(["hi", "hello"], 'direct_message,direct_mention,mention', function(bot, message) {
+  bot.reply(message, `Hello! Type anything to get started :robot_face:`);
+});
+
+controller.hears("", 'direct_message,direct_mention,mention', function(bot, message) {
+  bot.reply(message, `To save a link, do "collect [*link*] [*tag1*] [*tag2*]"\n Type *tags* to see available tags.\n Type *all* or visit <#${channelId}|${channelName}> to browse all bookmarks.\n For full documentation, see https://github.com/yicheny001/slack_cvrator/blob/master/README.md.`);
 });
