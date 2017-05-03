@@ -73,50 +73,57 @@ controller.hears(['collect (.*)'],'direct_message,direct_mention,mention', funct
   }
 })
 
-controller.hears(tags, 'direct_message,direct_mention,mention', function(bot, message) {
-  let keyWord = message.match[0]
-  axios.get(`${api}/channels.history`, {
-    params: {
-      token: mySlackToken,
-      channel: channelId
-    }
-  }).then((response) => {
+function criteria(m) {
+  return (
+    m.text.includes(":bookmark:")
+    && !m.text.includes(":information_source:")
+    && m.bot_id === botId
+  )
+}
 
-    let collection = []
-    let msgs = response.data.messages
-    console.log(msgs)
-    if(keyWord==='all'){
-      msgs.forEach((m)=>{
-        if(m.text.includes(":bookmark:")
-        && !m.text.includes(":information_source:")
-        && m.bot_id==='B49CK01GR'){
-          collection.push(`${m.text} \n`)
-        }
-      })
-    } else {
-      msgs.forEach((m)=>{
-        if(m.text.includes(":bookmark:")
-        && !m.text.includes(":information_source:")
-        && m.text.includes(keyWord)
-        && m.bot_id === botId){
-          collection.push(`${m.text} \n`)
-        }
-      })
-    }
+const tagSearch = "        Sorry, nothing is found in this category!\n        Try *all* to see all bookmarked links."
 
-    let result = collection.length!=0 ? collection.join("\n") : "        Sorry, nothing is found in this category!\n        Try *all* to see all bookmarked links."
+function search(bot, message, tag = false) {
+    let keyWord = message.match[0]
+    axios.get(`${api}/channels.history`, {
+      params: {
+        token: mySlackToken,
+        channel: channelId
+      }
+    }).then((response) => {
 
-    let resp = keyWord==='all' ? `Here are all the bookmarked links:`: `Looking up *${keyWord}* related bookmarks...`
-    bot.reply(message, `:information_source: ${resp}\n${result}`)
+      let collection = []
+      let msgs = response.data.messages
 
-  })
+      if(keyWord==='all'){
+        msgs.forEach((m)=>{
+          if(critera(m)) {
+            collection.push(`${m.text} \n`)
+          }
+        })
+      } else {
+        msgs.forEach((m)=>{
+          if(criteria(m) && m.text.includes(keyWord)){
+            collection.push(`${m.text} \n`)
+          }
+        })
+      }
 
+      let result = collection.length!=0 ? collection.join("\n") : tagSearch
 
+      let resp = keyWord==='all' ? `Here are all the bookmarked links:`: `Looking up *${keyWord}* related bookmarks...`
+      bot.reply(message, `:information_source: ${resp}\n${result}`)
 
+    })
+}
+
+controller.hears(tags, 'direct_message,direct_mention,mention', function(bot, message){
+  search(bot, message, true)
 })
 
-
-
+controller.hears(["search"], 'direct_message,direct_mention,mention', function(bot, message){
+  search(bot, message)
+})
 
 controller.hears(['call me (.*)', 'my name is (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
     var name = message.match[1];
