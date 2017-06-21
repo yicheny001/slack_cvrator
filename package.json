@@ -1,9 +1,10 @@
 {
   "name": "cvrator",
   "version": "1.0.0",
-  "description": "a slackbot that collects shared links into a google spreadsheet",
-  "main": "index.js",
+  "description": "a slackbot that collects shared links in public channels",
+  "main": "slackbot.js",
   "scripts": {
+    "start": "node slackbot.js",
     "test": "mocha test --colors"
   },
   "author": "yyang",
