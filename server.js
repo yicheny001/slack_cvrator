@@ -4,9 +4,17 @@ var os = require('os')
 var Botkit = require('./lib/Botkit.js')
 var constants = require('./constants.js')
 
-const { botToken, mySlackToken, botId } = constants.environment
-const { channelId, channelName, postChannel, api } = constants.slack
-const { tags } = constants.application
+// const { mySlackToken, botId } = constants.environment
+// const { channelId, channelName, postChannel, api } = constants.slack
+// const { tags } = constants.application
+
+const { env } = process
+const { botToken, mySlackToken, botId, channelId, channelName, api } = env
+const tags = [
+      'code', 'api', 'docker', 'react', 'javascript', 'ruby',
+      'design', 'product', 'ui', 'ux', 'swift', 'mobile',
+      'frontend', 'backend', 'css', 'animation' ,'architecture', 'performance', 'security',
+      'random' ,'all', 'testing', 'rails']
 
 if (!botToken) {
     console.log('Error: Specify token in constants.js');
@@ -251,7 +259,7 @@ controller.hears(['uptime', 'identify yourself', 'who are you', 'what is your na
           + "_To see all links_ ```all```\n"
           + "Replace the interpolated values with your own.\n"
           + "Reach out to <@yicheny> for questions, feedback, or feature requests :robot_face:")
-    });
+});
 
 function formatUptime(uptime) {
     var unit = 'second';
@@ -278,3 +286,19 @@ controller.hears(["hi", "hello"], 'direct_message,direct_mention,mention', funct
 controller.hears("", 'direct_message,direct_mention,mention', function(bot, message) {
   bot.reply(message, `To save a link, do "collect [*link*] [*tag1*] [*tag2*]"\n Type *tags* to see available tags.\n Type *all* or visit <#${channelId}|${channelName}> to browse all bookmarks.\n For full documentation, see https://github.com/yicheny001/slack_cvrator/blob/master/README.md.`);
 });
+
+function start_rtm() {
+  bot.startRTM(function(err,bot,payload) {
+    if (err) {
+      console.log('Failed to start RTM')
+      return setTimeout(start_rtm, 60000);
+    }
+    console.log("RTM started!");
+  })
+}
+
+controller.on('rtm_close', function(bot, err) {
+  start_rtm();
+})
+
+start_rtm();
